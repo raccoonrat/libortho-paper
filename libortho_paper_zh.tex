@@ -57,6 +57,8 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
+\usepackage{adjustbox}
+\usepackage{tabularx}
 
 % 定义定理环境
 \newtheorem{theorem}{定理}
@@ -710,6 +712,7 @@ MUSE（Machine Unlearning Six-Way Evaluation）~\cite{muse2024}提供了一个�
 
 \begin{table}
 \centering
+\footnotesize
 \begin{tabular}{|l|c|c|}
 \hline
 方法 & WikiText PPL & MMLU分数 \\
@@ -814,18 +817,19 @@ LibOrtho ($\alpha=0$) & 5.9 & 66.5 \\
 
 \begin{table}
 \centering
+\footnotesize
 \begin{tabular}{|l|c|c|c|}
 \hline
-方法 & 延迟 (ms/token) & 相对INT4开销 & 隐私保护 \\
+方法 & 延迟 & 相对开销 & 隐私保护 \\
 \hline
 FP16基线 & 12.5 & 4.0x & 无 \\
-bitsandbytes INT4 & 3.1 & 1.0x (基线) & 无 \\
+bitsandbytes INT4 & 3.1 & 1.0x & 无 \\
 GPTQ INT4 & 3.2 & 1.03x & 无 \\
-LibOrtho ($\alpha=1$) & 3.5 & 1.13x & 是（运行时控制） \\
-LibOrtho ($\alpha=0$) & 3.1 & 1.0x & 是（完全隔离） \\
+LibOrtho ($\alpha=1$) & 3.5 & 1.13x & 是 \\
+LibOrtho ($\alpha=0$) & 3.1 & 1.0x & 是 \\
 \hline
 \end{tabular}
-\caption{\label{tab:performance}不同方法的延迟对比（A100 GPU，Llama-2-7B）。LibOrtho在$\alpha=0$时与纯INT4性能相同，在$\alpha=1$时产生13\%的开销，但提供了确定性的隐私控制。}
+\caption{\label{tab:performance}不同方法的延迟对比（A100 GPU，Llama-2-7B，单位：ms/token）。LibOrtho在$\alpha=0$时与纯INT4性能相同，在$\alpha=1$时产生13\%的开销，但提供了确定性的隐私控制。}
 \end{table}
 
 \textbf{硬件}：NVIDIA A100 / RTX 4090。
@@ -877,10 +881,10 @@ LibOrtho ($\alpha=0$) & 3.1 & 1.0x & 是（完全隔离） \\
 
 \textbf{几何解耦遗忘（GU）}：2025年提出的几何解耦遗忘（Geometric-disentanglement Unlearning, GU）~\cite{gu2025}通过动态梯度投影实现遗忘与保留之间的解耦。GU在理论上通过投影到保留集子空间的切平面更精准地处理了纠缠问题，但它本质上还是一种"遗忘算法"，需要昂贵的多轮梯度下降和投影计算。相比之下，LibOrtho的最大优势在于\textbf{即时性（Instantaneity）}和\textbf{确定性（Determinism）}：LibOrtho不是让模型"学会遗忘"，而是让模型"无法回忆"。GU虽然在理论上更精确，但计算成本为$O(N \cdot d)$（$N$为训练样本数，$d$为参数维度），而LibOrtho的预处理成本为$O(d)$，推理时切换成本为$O(1)$。表~\ref{tab:comparison-gu}展示了详细的对比。
 
-\begin{table}
+\begin{table*}
 \centering
-\small
-\begin{tabular}{|l|c|c|}
+\footnotesize
+\begin{tabular}{|p{2.5cm}|p{5cm}|p{5cm}|}
 \hline
 特性 & LibOrtho (本文) & Geometric-disentanglement Unlearning (GU) \\
 \hline
@@ -898,7 +902,7 @@ LibOrtho ($\alpha=0$) & 3.1 & 1.0x & 是（完全隔离） \\
 \hline
 \end{tabular}
 \caption{\label{tab:comparison-gu}LibOrtho与几何解耦遗忘(GU)的对比分析。}
-\end{table}
+\end{table*}
 
 \textbf{隐私}：差分隐私~\cite{differential-privacy}提供统计保证，但可能显著影响模型性能。我们提供确定性保证：通过设置$\alpha=0$，可以确定性地禁用隐私流，同时保持基础智能能力。
 
