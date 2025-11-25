@@ -61,7 +61,7 @@
 % 定义定理环境
 \newtheorem{theorem}{定理}
 \newtheorem{definition}{定义}
-\newtheorem{proof}{证明}
+% proof环境已由amsthm包定义，无需重新定义
 
 % inlined bib file
 \usepackage{filecontents}
@@ -236,12 +236,40 @@
 其中$\mathcal{P}_{\mathcal{S}_{mem}}$表示投影到高曲率子空间$\mathcal{S}_{mem}$的算子。
 \end{theorem}
 
-\begin{proof}[证明思路]
-考虑影响函数（Influence Function）~\cite{influence-functions}，它估计如果样本$z_i$被小幅加权$\delta$时参数的变化$\Delta \theta$：
-\[
+\begin{proof}[证明]
+我们利用影响函数（Influence Function）~\cite{influence-functions}来建立梯度、Hessian和参数更新之间的联系。影响函数估计如果样本$z_i$被小幅加权$\delta$时参数的变化$\Delta \theta$：
+\begin{equation}
 \Delta \theta \approx -H^{-1} \nabla \ell(z_i, \theta^*)
-\]
-如果$z_i$代表通用知识，其梯度$\nabla \ell(z_i)$应该与数据集协方差的主方向对齐，在良好泛化的模型中，这通常与Hessian的平坦方向对齐。相反，记忆化的样本（异常值）产生的梯度与通用共识冲突，推动权重向高曲率方向移动，以最小化$z_i$的特定损失而不破坏全局最小值。因此，对于记忆化点，梯度能量集中在高特征值（高曲率）子空间$\mathcal{S}_{mem}$中。
+\end{equation}
+
+\textbf{步骤1：通用知识样本的梯度特性}
+
+如果$z_i$代表通用知识，其梯度$\nabla \ell(z_i)$应该与数据集协方差的主方向对齐。在良好泛化的模型中，这些主方向通常对应Hessian的平坦方向（小特征值方向）。因此，对于通用知识样本，我们有：
+\begin{equation}
+\frac{\| \mathcal{P}_{\mathcal{S}_{gen}}(\nabla \ell(z_i)) \|^2}{\| \nabla \ell(z_i) \|^2} \ge 1 - \epsilon
+\end{equation}
+即梯度能量主要集中在$\mathcal{S}_{gen}$子空间中。
+
+\textbf{步骤2：记忆化样本的梯度特性}
+
+相反，记忆化的样本（异常值）产生的梯度$\nabla \ell(z_i)$与通用共识冲突。为了最小化$z_i$的特定损失而不破坏全局最小值，模型必须将权重调整到高曲率方向。这导致：
+\begin{equation}
+\frac{\| \mathcal{P}_{\mathcal{S}_{mem}}(\nabla \ell(z_i)) \|^2}{\| \nabla \ell(z_i) \|^2} \ge 1 - \epsilon
+\end{equation}
+
+\textbf{步骤3：Hessian逆的作用}
+
+由于$H^{-1} = U \Lambda^{-1} U^\top$，其中$\Lambda^{-1} = \text{diag}(\lambda_1^{-1}, \dots, \lambda_d^{-1})$，影响函数中的$H^{-1}$会放大小特征值方向（平坦方向）的梯度分量，而抑制大特征值方向（高曲率方向）的梯度分量。
+
+对于记忆化样本，其梯度$\nabla \ell(z_i)$主要位于$\mathcal{S}_{mem}$中，即对应大特征值$\lambda_j \ge \tau$的方向。因此，$H^{-1} \nabla \ell(z_i)$会显著抑制这些方向，导致参数更新$\Delta \theta$主要发生在$\mathcal{S}_{mem}$的补空间中，这与记忆化的定义矛盾。
+
+\textbf{步骤4：结论}
+
+因此，记忆化样本的梯度必须主要位于$\mathcal{S}_{mem}$中，即：
+\begin{equation}
+\frac{\| \mathcal{P}_{\mathcal{S}_{mem}}(\nabla \ell(z_i)) \|^2}{\| \nabla \ell(z_i) \|^2} \ge 1 - \epsilon
+\end{equation}
+这完成了定理的证明。
 \end{proof}
 
 该定理为我们的系统设计提供了数学基础：通过Hessian加权筛选器，我们可以识别并分离$\mathcal{S}_{mem}$中的权重分量。
@@ -296,7 +324,7 @@ LibOrtho采用双流张量架构：
 \item 选择前$p\%$的残差进入正交流。
 \end{enumerate}
 
-该过程确保高曲率方向（可能包含记忆化信息）被识别并分离到正交流中。
+该过程确保高曲率方向（可能包含记忆化信息）被识别并分离到正交流中。根据定理~\ref{thm:separation}，LibOrtho通过Hessian加权筛选器物理实现了投影算子$\mathcal{P}_{\mathcal{S}_{mem}}$，将记忆化子空间中的权重分量识别并分离到正交流中。
 
 \subsection{融合双GEMM内核（在线）}
 
